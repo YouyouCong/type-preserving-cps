@@ -27,11 +27,11 @@ data STm : SCon → STy → Set where
 
 -- examples
 
--- Γ , int ⊢ (λx. x) y : int
+-- Γ , y : int ⊢ (λx. x) y : int
 term1 : STm (• , Int) Int
 term1 = app (lam (var z)) (var z)
 
--- Γ , int ⊬ x x : int
+-- Γ , x : int ⊬ x x : int
 -- term2 : STm (• , Int) Int
 -- term2 = app {• , Int} (var z) (var z)
 
