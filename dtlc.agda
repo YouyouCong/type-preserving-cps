@@ -100,8 +100,8 @@ infixl 5 _$_
 
 -- examples
 
--- • ⊢ λt:U.t
-term1 : Tm • (Π U U)
+-- Γ ⊢ λt:U.t
+term1 : {Γ : Con} → Tm Γ (Π U U)
 term1 = lam (coe (TmΓ≡ U[]) vz)
 
 -- • ⊢ λt:U.λx:t.x
@@ -109,6 +109,12 @@ term2 : Tm • (Π U
               (Π (El (coe (TmΓ≡ U[]) vz))
                   (El (coe (TmΓ≡ U[]) (coe (TmΓ≡ U[]) vz [ wk ]t)))))
 term2 = lam (lam (coe (TmΓ≡ El[]) vz))
+
+-- • ⊢ λt:U.λx:(λt':U.t')t.x
+term3 : Tm • (Π U
+                (Π (El (coe (TmΓ≡ U[]) (term1 $ coe (TmΓ≡ U[]) vz)))
+                   (El (coe (TmΓ≡ U[]) (coe (TmΓ≡ U[]) (term1 $ coe (TmΓ≡ U[]) vz) [ wk ]t)))))
+term3 = lam (lam (coe (TmΓ≡ El[]) vz))
 
 -- CPS language
 
@@ -289,7 +295,9 @@ mutual
 
   + : ∀ {Γ} → Ty Γ → CTy (÷-Con Γ) •
   + U = U
-  + {Γ} (El t) = {!!} -- How should we translate this?
+  + {Γ} (El t) = El (coe (CTmΓ≡ U[]') 
+                         ((coe (CTmΓ≡ (cong (λ x → Πc (Πc x U) U) +U≡U)) (cps t)) $c 
+                          lamc (coe (CTmΓ≡ U[]') vzc)))
   + (Π A B) = Πt (÷ A) (÷ B)
   + (A [ δ ]T) = + A [ ÷-Tms δ ]T 
 
@@ -336,12 +344,15 @@ mutual
   cps (π₂ {Γ} {Δ} {A} δ) with ÷-Tms δ
   ... | δ' with π₂t δ'
   ... | t' with SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (π₁t δ')
-  ... | p rewrite (p ⁻¹) = t' 
+  ... | p = coe (CTmΓ≡ p) t'
   cps {.Γ} {A [ .δ ]T} (_[_]t {Γ} {Δ} t δ) with cps t | ÷-Tms δ
   ... | t' | δ' with t' [ δ' ]t | SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) δ'
-  ... | t'' | p rewrite (p ⁻¹) = t'' 
+  ... | t'' | p = coe (CTmΓ≡ p) t'' 
 
   -- substitutions commute with translation on types
   SubComTy : {Γ Δ : Con} → (A : Ty Δ) → (δ : Tms Γ Δ) 
            → ÷ (A [ δ ]T) ≡ (÷ A) [ ÷-Tms δ ]T
   SubComTy {Γ} {Δ} A δ = (SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (÷-Tms δ)) ⁻¹
+  
+  +U≡U : {Γ : Con} → + {Γ} U ≡ U
+  +U≡U = refl
