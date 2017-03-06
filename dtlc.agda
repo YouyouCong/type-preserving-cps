@@ -272,7 +272,6 @@ SubPiU {Γ} {Γ'} {Δ} {Δ'} A δ =
   ∎
 
 -- CPS translation
-{-# NO_TERMINATION_CHECK #-}
 mutual
   -- translation for contexts
   ÷-Con : Con → CCon
@@ -296,10 +295,14 @@ mutual
   + : ∀ {Γ} → Ty Γ → CTy (÷-Con Γ) •
   + U = U
   + {Γ} (El t) = El (coe (CTmΓ≡ U[]') 
-                         ((coe (CTmΓ≡ (cong (λ x → Πc (Πc x U) U) +U≡U)) (cps t)) $c 
+                         ((coe (CTmΓ≡ (cong (λ x → Πc (Πc x U) U) refl)) (cpsU t)) $c 
                           lamc (coe (CTmΓ≡ U[]') vzc)))
   + (Π A B) = Πt (÷ A) (÷ B)
   + (A [ δ ]T) = + A [ ÷-Tms δ ]T 
+  
+  -- translation for terms of type U
+  cpsU : {Γ : Con} → Tm Γ U → CTm (÷-Con Γ) • Πc (Πc U U) U
+  cpsU t = cps t
 
   -- translation for terms
   cps : {Γ : Con} {A : Ty Γ} → Tm Γ A → CTm (÷-Con Γ) • (÷ A)
@@ -315,9 +318,7 @@ mutual
   ... | r with coe (CTmΓ≡ (U[]' {δ = id ,c coe (CTmΓ≡ ([id]T' ⁻¹)) wlt'})) r
   ... | r' = lamc r'
   cps (app {Γ} {A} {B} t) 
-    = {!!}
-   {- type checking does not terminate when filling in the blank with the following term:
-      lamc {A = Πc (+ B) U}
+    = lamc {A = Πc (+ B) U}
            (coe (CTmΓ≡ U[]') 
                 ((coe (CTmΓ≡ (SubPiU (+ (Π A B)) (wkt ∘ wkc)))
                       ((cps t) [ wkt {A = ÷ A} ∘ (wkc {A = Πc (+ B) U}) ]t)) $c 
@@ -340,7 +341,7 @@ mutual
                                         (vzt [ wkc ∘ wkc ]t)))) $c 
                              (coe (CTmΓ≡ (trans (trans ([][]T' wkc wkc) (Πc[]' (wkc ∘ wkc))) 
                                                 (wk↑<> {T = + B}))) 
-                                  (vsc {A = Πc (+ B) U [ wkc ]T} vzc))))))) -} 
+                                  (vsc {A = Πc (+ B) U [ wkc ]T} vzc)))))))
   cps (π₂ {Γ} {Δ} {A} δ) with ÷-Tms δ
   ... | δ' with π₂t δ'
   ... | t' with SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (π₁t δ')
@@ -353,6 +354,3 @@ mutual
   SubComTy : {Γ Δ : Con} → (A : Ty Δ) → (δ : Tms Γ Δ) 
            → ÷ (A [ δ ]T) ≡ (÷ A) [ ÷-Tms δ ]T
   SubComTy {Γ} {Δ} A δ = (SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (÷-Tms δ)) ⁻¹
-  
-  +U≡U : {Γ : Con} → + {Γ} U ≡ U
-  +U≡U = refl
