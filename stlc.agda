@@ -137,5 +137,3 @@ cps (lam t) with wkc (lamt (cps t))
 ... | t' = lamc (appc (varc z) t')
 cps (app t₁ t₂) with wkc (cps t₁) | wkc (wkc (cps t₂))
 ... | t₁' | t₂' = lamc (appc t₁' (lamc (appc (appt (varc z) t₂') (varc (s z)))))
-
-
