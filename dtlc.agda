@@ -309,7 +309,7 @@ mutual
   + (A [ δ ]T) = + A [ ÷-Tms δ ]T
 
   -- translation for terms of type U
-  cpsU : {Γ : Con} → Tm Γ U → CTm (÷-Con Γ) • Πc (Πc U U) U
+  cpsU : {Γ : Con} → Tm Γ U → CTm (÷-Con Γ) • (Πc (Πc U U) U)
   cpsU t = cps t
 
   -- translation for terms
