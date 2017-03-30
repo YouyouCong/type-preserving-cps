@@ -249,34 +249,35 @@ postulate
   wk↑<> : ∀ {Γ Γ' S A B t} {T : CTy (Γ ,t S) Γ'} →
           Πc (T [ wkc {A = A} ∘ wkc {A = B} ]T) U ≡
           Πc (T [ ((wkt ∘ wkc) ∘ wkc) ↑t S ∘ < t >t ]T) U
-         
-SubPiU : {Γ Γ' Δ Δ' : CCon} → (A : CTy Δ Δ') → (δ : CTms Γ Γ' Δ Δ') → 
-         (Πc (Πc A U) U) [ δ ]T ≡ Πc (Πc (A [ δ ]T) U) U
-SubPiU {Γ} {Γ'} {Δ} {Δ'} A δ =
-  begin
-    (Πc (Πc {Δ} A U) U) [ δ ]T
-  ≡⟨ Πc[] {Γ} {Γ'} {Δ} {Δ'} {Πc A U} {U} δ ⟩
-    Πc (Πc {Δ} A U [ δ ]T) (U [ δ ↑c Πc A U ]T)
-  ≡⟨ cong (λ x → Πc (Πc {Δ} A U [ δ ]T) x) 
-          (U[]' {Γ} {Γ' ,c Πc A U [ δ ]T} {Δ} {Δ' ,c Πc A U} {δ ↑c Πc A U}) ⟩ 
-    Πc (Πc {Δ} A U [ δ ]T) U
-  ≡⟨ cong (λ x → Πc x U) (Πc[] {Γ} {Γ'} {Δ} {Δ'} {A} {U} δ) ⟩
-    Πc (Πc {Γ} (A [ δ ]T) (U [ δ ↑c A ]T)) U
-  ≡⟨ cong (λ x → Πc (Πc (A [ δ ]T) x) U) 
-          (U[]' {Γ} {Γ' ,c A [ δ ]T} {Δ} {Δ' ,c A} {δ ↑c A}) ⟩
-    Πc (Πc (A [ δ ]T) U) U
-  ∎
 
-Πc[]' : ∀ {Γ Γ' Δ' A} → (δ : CTms Γ Γ' Γ Δ') 
-      → (Πc A U) [ δ ]T ≡ Πc (A [ δ ]T) U
-Πc[]' {A = A} δ =
-  begin
-    (Πc A U) [ δ ]T
-  ≡⟨ Πc[] δ ⟩
-    Πc (A [ δ ]T) (U [ δ ↑c A ]T)
-  ≡⟨ cong (λ x → Πc (A [ δ ]T) x) (U[]' {δ = δ ↑c A}) ⟩
-    Πc (A [ δ ]T) U
-  ∎
+abstract
+  SubPiU : {Γ Γ' Δ Δ' : CCon} → (A : CTy Δ Δ') → (δ : CTms Γ Γ' Δ Δ') →
+           (Πc (Πc A U) U) [ δ ]T ≡ Πc (Πc (A [ δ ]T) U) U
+  SubPiU {Γ} {Γ'} {Δ} {Δ'} A δ =
+    begin
+      (Πc (Πc {Δ} A U) U) [ δ ]T
+    ≡⟨ Πc[] {Γ} {Γ'} {Δ} {Δ'} {Πc A U} {U} δ ⟩
+      Πc (Πc {Δ} A U [ δ ]T) (U [ δ ↑c Πc A U ]T)
+    ≡⟨ cong (λ x → Πc (Πc {Δ} A U [ δ ]T) x)
+            (U[]' {Γ} {Γ' ,c Πc A U [ δ ]T} {Δ} {Δ' ,c Πc A U} {δ ↑c Πc A U}) ⟩
+      Πc (Πc {Δ} A U [ δ ]T) U
+    ≡⟨ cong (λ x → Πc x U) (Πc[] {Γ} {Γ'} {Δ} {Δ'} {A} {U} δ) ⟩
+      Πc (Πc {Γ} (A [ δ ]T) (U [ δ ↑c A ]T)) U
+    ≡⟨ cong (λ x → Πc (Πc (A [ δ ]T) x) U)
+            (U[]' {Γ} {Γ' ,c A [ δ ]T} {Δ} {Δ' ,c A} {δ ↑c A}) ⟩
+      Πc (Πc (A [ δ ]T) U) U
+    ∎
+
+  Πc[]' : ∀ {Γ Γ' Δ' A} → (δ : CTms Γ Γ' Γ Δ')
+        → (Πc A U) [ δ ]T ≡ Πc (A [ δ ]T) U
+  Πc[]' {A = A} δ =
+    begin
+      (Πc A U) [ δ ]T
+    ≡⟨ Πc[] δ ⟩
+      Πc (A [ δ ]T) (U [ δ ↑c A ]T)
+    ≡⟨ cong (λ x → Πc (A [ δ ]T) x) (U[]' {δ = δ ↑c A}) ⟩
+      Πc (A [ δ ]T) U
+    ∎
 
 -- CPS translation
 mutual
