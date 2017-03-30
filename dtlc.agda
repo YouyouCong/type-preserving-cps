@@ -79,6 +79,9 @@ postulate
   El[] : {Γ Δ : Con} {A : Tm Δ U} {δ : Tms Γ Δ} →
          El A [ δ ]T ≡ El (coe (TmΓ≡ U[]) (A [ δ ]t))
 
+-- Lifting a substitution
+-- (duplicates δ)
+
 _↑_ : {Γ Δ : Con} → (δ : Tms Γ Δ) (A : Ty Δ) → Tms (Γ , A [ δ ]T) (Δ , A)
 δ ↑ A = (δ ∘ π₁ id) , coe (TmΓ≡ ([][]T δ (π₁ id))) (π₂ id)
 
@@ -200,6 +203,8 @@ postulate
   U[]' : {Γ Γ' Δ Δ' : CCon} {δ : CTms Γ Γ' Δ Δ'} → _≡_ {zero} {CTy Γ Γ'} (U [ δ ]T) U
   El[]' : {Γ Γ' Δ Δ' : CCon} {A : CTm Δ Δ' U} {δ : CTms Γ Γ' Δ Δ'} →
           _≡_ {zero} {CTy Γ Γ'} (El A [ δ ]T) (El (coe (CTmΓ≡ U[]') (A [ δ ]t)))
+
+-- The following duplicate δ:
 
 _↑t_ : {Γ Γ' Δ Δ' : CCon} → (δ : CTms Γ Γ' Δ Δ') (A : CTy Δ Δ') →
        CTms (Γ ,t A [ δ ]T) Γ' (Δ ,t A) Δ'
