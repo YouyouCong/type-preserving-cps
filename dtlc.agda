@@ -26,22 +26,22 @@ mutual
   infixl 5 _,_
 
   -- types
-  data Ty : Con → Set where
-    _[_]T : {Γ Δ : Con} → Ty Δ → Tms Γ Δ → Ty Γ
-    Π : {Γ : Con} → (A : Ty Γ) → (B : Ty (Γ , A)) → Ty Γ
-    U : {Γ : Con} → Ty Γ
-    El : {Γ : Con} → (A : Tm Γ U) → Ty Γ
+  data Ty (Γ : Con) : Set where
+    _[_]T :  {Δ : Con} → Ty Δ → Tms Γ Δ → Ty Γ
+    Π     :  (A : Ty Γ) → (B : Ty (Γ , A)) → Ty Γ
+    U     :  Ty Γ
+    El    :  (A : Tm Γ U) → Ty Γ
 
   infixl 7 _[_]T
 
   -- substitutions
-  data Tms : Con → Con → Set where
-    ε : {Γ : Con} → Tms Γ •
-    _,_ : {Γ Δ : Con} {A : Ty Δ} →
-          (δ : Tms Γ Δ) → Tm Γ (A [ δ ]T) → Tms Γ (Δ , A)
-    id : {Γ : Con} → Tms Γ Γ
-    _∘_ : {Γ Δ Σ : Con} → Tms Δ Σ → Tms Γ Δ → Tms Γ Σ
-    π₁ : {Γ Δ : Con} {A : Ty Δ} → Tms Γ (Δ , A) → Tms Γ Δ
+  data Tms (Γ : Con) : Con → Set where
+    ε    : Tms Γ •
+    _,_  : {Δ : Con} {A : Ty Δ} →
+           (δ : Tms Γ Δ) → Tm Γ (A [ δ ]T) → Tms Γ (Δ , A)
+    id   : Tms Γ Γ
+    _∘_  : {Δ Σ : Con} → Tms Δ Σ → Tms Γ Δ → Tms Γ Σ
+    π₁   : {Δ : Con} {A : Ty Δ} → Tms Γ (Δ , A) → Tms Γ Δ
 
   infix 6 _∘_
 
@@ -132,41 +132,32 @@ mutual
   infixl 5 _,c_
 
   -- types
-  data CTy : CCon → CCon → Set where
-    U : {Γ Γ' : CCon} → CTy Γ Γ'
-    El : {Γ Γ' : CCon} → (A : CTm Γ Γ' U) → CTy Γ Γ'
-    Πt : {Γ Γ' : CCon} → (A : CTy Γ Γ') → (B : CTy (Γ ,t A) Γ') → CTy Γ Γ'
-    Πc : {Γ Γ' : CCon} → (A : CTy Γ Γ') → (B : CTy Γ (Γ' ,c A)) → CTy Γ Γ'
-    _[_]T : {Γ Γ' Δ Δ' : CCon} → CTy Δ Δ' → CTms Γ Γ' Δ Δ' → CTy Γ Γ'
+  data CTy (Γ Γ' : CCon) : Set where
+    U     :  CTy Γ Γ'
+    El    :  (A : CTm Γ Γ' U) → CTy Γ Γ'
+    Πt    :  (A : CTy Γ Γ') → (B : CTy (Γ ,t A) Γ') → CTy Γ Γ'
+    Πc    :  (A : CTy Γ Γ') → (B : CTy Γ (Γ' ,c A)) → CTy Γ Γ'
+    _[_]T :  {Δ Δ' : CCon} → CTy Δ Δ' → CTms Γ Γ' Δ Δ' → CTy Γ Γ'
 
   -- substitutions
-  data CTms : CCon → CCon → CCon → CCon → Set where
-    ε : {Γ Γ' : CCon} → CTms Γ Γ' • •
-    _,t_ : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-           (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' (Δ ,t A) Δ'
-    _,c_ : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-           (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' Δ (Δ' ,c A)
-    id : {Γ Γ' : CCon} → CTms Γ Γ' Γ Γ'
-    _∘_ : {Γ Γ' Δ Δ' Σ Σ' : CCon} → CTms Δ Δ' Σ Σ' → CTms Γ Γ' Δ Δ' → CTms Γ Γ' Σ Σ'
-    π₁t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' (Δ ,t A) Δ' → CTms Γ Γ' Δ Δ'
-    π₁c : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' Δ (Δ' ,c A) → CTms Γ Γ' Δ Δ'
+  data CTms (Γ Γ' : CCon) : CCon → CCon → Set where
+    ε    :  CTms Γ Γ' • •
+    _,t_ :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' (Δ ,t A) Δ'
+    _,c_ :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' Δ (Δ' ,c A)
+    id   :  CTms Γ Γ' Γ Γ'
+    _∘_  :  {Δ Δ' Σ Σ' : CCon} → CTms Δ Δ' Σ Σ' → CTms Γ Γ' Δ Δ' → CTms Γ Γ' Σ Σ'
+    π₁t  :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' (Δ ,t A) Δ' → CTms Γ Γ' Δ Δ'
+    π₁c  :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' Δ (Δ' ,c A) → CTms Γ Γ' Δ Δ'
 
   -- terms
   data CTm : (Γ Γ' : CCon) → CTy Γ Γ' → Set where
-    lamt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} →
-           CTm (Γ ,t A) Γ' B → CTm Γ Γ' (Πt A B)
-    lamc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} →
-           CTm Γ (Γ' ,c A) B → CTm Γ Γ' (Πc A B)
-    appt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} →
-           CTm Γ Γ' (Πt A B) → CTm (Γ ,t A) Γ' B
-    appc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} →
-           CTm Γ Γ' (Πc A B) → CTm Γ (Γ' ,c A) B
-    π₂t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-          (δ : CTms Γ Γ' (Δ ,t A) Δ') → CTm Γ Γ' (A [ π₁t δ ]T)
-    π₂c : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-          (δ : CTms Γ Γ' Δ (Δ' ,c A)) → CTm Γ Γ' (A [ π₁c δ ]T)
-    _[_]t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-            CTm Δ Δ' A → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T)
+    lamt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} → CTm (Γ ,t A) Γ' B → CTm Γ Γ' (Πt A B)
+    lamc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} → CTm Γ (Γ' ,c A) B → CTm Γ Γ' (Πc A B)
+    appt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} → CTm Γ Γ' (Πt A B) → CTm (Γ ,t A) Γ' B
+    appc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} → CTm Γ Γ' (Πc A B) → CTm Γ (Γ' ,c A) B
+    π₂t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' (Δ ,t A) Δ') → CTm Γ Γ' (A [ π₁t δ ]T)
+    π₂c : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' Δ (Δ' ,c A)) → CTm Γ Γ' (A [ π₁c δ ]T)
+    _[_]t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → CTm Δ Δ' A → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T)
 
 -- variables
 wkt : {Γ Γ' : CCon} {A : CTy Γ Γ'} → CTms (Γ ,t A) Γ' Γ Γ'
@@ -281,6 +272,7 @@ abstract
 
 -- CPS translation
 mutual
+  {-# TERMINATING #-}
   -- translation for contexts
   ÷-Con : Con → CCon
   ÷-Con • = •
@@ -293,7 +285,7 @@ mutual
   ÷-Tms id = id
   ÷-Tms (δ ∘ σ) with ÷-Tms δ | ÷-Tms σ
   ... | δ' | σ' = δ' ∘ σ'
-  ÷-Tms (π₁ {Γ} {Δ} {T} δ) with ÷-Tms δ
+  ÷-Tms {Γ} (π₁ {Δ} {T} δ) with ÷-Tms δ
   ... | δ' = π₁t {÷-Con Γ} {•} {÷-Con Δ} {•} {÷ T} δ'
 
   -- translation for types
