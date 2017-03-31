@@ -26,22 +26,22 @@ mutual
   infixl 5 _,_
 
   -- types
-  data Ty (Γ : Con) : Set where
-    _[_]T :  {Δ : Con} → Ty Δ → Tms Γ Δ → Ty Γ
-    Π     :  (A : Ty Γ) → (B : Ty (Γ , A)) → Ty Γ
-    U     :  Ty Γ
-    El    :  (A : Tm Γ U) → Ty Γ
+  data Ty : Con → Set where
+    _[_]T : {Γ Δ : Con} → Ty Δ → Tms Γ Δ → Ty Γ
+    Π : {Γ : Con} → (A : Ty Γ) → (B : Ty (Γ , A)) → Ty Γ
+    U : {Γ : Con} → Ty Γ
+    El : {Γ : Con} → (A : Tm Γ U) → Ty Γ
 
   infixl 7 _[_]T
 
   -- substitutions
-  data Tms (Γ : Con) : Con → Set where
-    ε    : Tms Γ •
-    _,_  : {Δ : Con} {A : Ty Δ} →
-           (δ : Tms Γ Δ) → Tm Γ (A [ δ ]T) → Tms Γ (Δ , A)
-    id   : Tms Γ Γ
-    _∘_  : {Δ Σ : Con} → Tms Δ Σ → Tms Γ Δ → Tms Γ Σ
-    π₁   : {Δ : Con} {A : Ty Δ} → Tms Γ (Δ , A) → Tms Γ Δ
+  data Tms : Con → Con → Set where
+    ε : {Γ : Con} → Tms Γ •
+    _,_ : {Γ Δ : Con} {A : Ty Δ} →
+          (δ : Tms Γ Δ) → Tm Γ (A [ δ ]T) → Tms Γ (Δ , A)
+    id : {Γ : Con} → Tms Γ Γ
+    _∘_ : {Γ Δ Σ : Con} → Tms Δ Σ → Tms Γ Δ → Tms Γ Σ
+    π₁ : {Γ Δ : Con} {A : Ty Δ} → Tms Γ (Δ , A) → Tms Γ Δ
 
   infix 6 _∘_
 
@@ -234,7 +234,6 @@ t $c u = (appc t) [ < u >c ]t
 
 infix 5 _$c_
 
-
 -- equalities necessary for the CPS translation
 postulate
   wk↑<> : ∀ {Γ Γ' S A B t} {T : CTy (Γ ,t S) Γ'} →
@@ -272,7 +271,7 @@ abstract
 
 -- CPS translation
 mutual
-  {-# TERMINATING #-}
+  
   -- translation for contexts
   ÷-Con : Con → CCon
   ÷-Con • = •
@@ -285,8 +284,8 @@ mutual
   ÷-Tms id = id
   ÷-Tms (δ ∘ σ) with ÷-Tms δ | ÷-Tms σ
   ... | δ' | σ' = δ' ∘ σ'
-  ÷-Tms {Γ} (π₁ {Δ} {T} δ) with ÷-Tms δ
-  ... | δ' = π₁t {÷-Con Γ} {•} {÷-Con Δ} {•} {÷ T} δ'
+  ÷-Tms (π₁ δ) with ÷-Tms δ
+  ... | δ' = π₁t δ'
 
   -- translation for types
   ÷ : ∀ {Γ} → Ty Γ → CTy (÷-Con Γ) •
