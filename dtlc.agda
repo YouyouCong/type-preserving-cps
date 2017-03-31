@@ -1,5 +1,5 @@
 -- Type-safe representation of the λ calculus with Π types by Altenkirch & Kaposi (POPL 2016)
--- and its CPS translation 
+-- and its CPS translation
 
 module dtlc where
 
@@ -26,22 +26,22 @@ mutual
   infixl 5 _,_
 
   -- types
-  data Ty : Con → Set where
-    _[_]T : {Γ Δ : Con} → Ty Δ → Tms Γ Δ → Ty Γ
-    Π : {Γ : Con} → (A : Ty Γ) → (B : Ty (Γ , A)) → Ty Γ
-    U : {Γ : Con} → Ty Γ
-    El : {Γ : Con} → (A : Tm Γ U) → Ty Γ
+  data Ty (Γ : Con) : Set where
+    _[_]T :  {Δ : Con} → Ty Δ → Tms Γ Δ → Ty Γ
+    Π     :  (A : Ty Γ) → (B : Ty (Γ , A)) → Ty Γ
+    U     :  Ty Γ
+    El    :  (A : Tm Γ U) → Ty Γ
 
   infixl 7 _[_]T
 
   -- substitutions
-  data Tms : Con → Con → Set where
-    ε : {Γ : Con} → Tms Γ •
-    _,_ : {Γ Δ : Con} {A : Ty Δ} →
-          (δ : Tms Γ Δ) → Tm Γ (A [ δ ]T) → Tms Γ (Δ , A)
-    id : {Γ : Con} → Tms Γ Γ
-    _∘_ : {Γ Δ Σ : Con} → Tms Δ Σ → Tms Γ Δ → Tms Γ Σ
-    π₁ : {Γ Δ : Con} {A : Ty Δ} → Tms Γ (Δ , A) → Tms Γ Δ
+  data Tms (Γ : Con) : Con → Set where
+    ε    : Tms Γ •
+    _,_  : {Δ : Con} {A : Ty Δ} →
+           (δ : Tms Γ Δ) → Tm Γ (A [ δ ]T) → Tms Γ (Δ , A)
+    id   : Tms Γ Γ
+    _∘_  : {Δ Σ : Con} → Tms Δ Σ → Tms Γ Δ → Tms Γ Σ
+    π₁   : {Δ : Con} {A : Ty Δ} → Tms Γ (Δ , A) → Tms Γ Δ
 
   infix 6 _∘_
 
@@ -79,11 +79,14 @@ postulate
   El[] : {Γ Δ : Con} {A : Tm Δ U} {δ : Tms Γ Δ} →
          El A [ δ ]T ≡ El (coe (TmΓ≡ U[]) (A [ δ ]t))
 
+-- Lifting a substitution
+-- (duplicates δ)
+
 _↑_ : {Γ Δ : Con} → (δ : Tms Γ Δ) (A : Ty Δ) → Tms (Γ , A [ δ ]T) (Δ , A)
 δ ↑ A = (δ ∘ π₁ id) , coe (TmΓ≡ ([][]T δ (π₁ id))) (π₂ id)
 
 postulate
-  Π[] : ∀ {Γ Δ A B} → (δ : Tms Γ Δ) → 
+  Π[] : ∀ {Γ Δ A B} → (δ : Tms Γ Δ) →
        (Π A B) [ δ ]T ≡ Π (A [ δ ]T) (B [ δ ↑ A ]T)
 
 -- application
@@ -129,41 +132,32 @@ mutual
   infixl 5 _,c_
 
   -- types
-  data CTy : CCon → CCon → Set where
-    U : {Γ Γ' : CCon} → CTy Γ Γ'
-    El : {Γ Γ' : CCon} → (A : CTm Γ Γ' U) → CTy Γ Γ'
-    Πt : {Γ Γ' : CCon} → (A : CTy Γ Γ') → (B : CTy (Γ ,t A) Γ') → CTy Γ Γ'
-    Πc : {Γ Γ' : CCon} → (A : CTy Γ Γ') → (B : CTy Γ (Γ' ,c A)) → CTy Γ Γ'
-    _[_]T : {Γ Γ' Δ Δ' : CCon} → CTy Δ Δ' → CTms Γ Γ' Δ Δ' → CTy Γ Γ'
+  data CTy (Γ Γ' : CCon) : Set where
+    U     :  CTy Γ Γ'
+    El    :  (A : CTm Γ Γ' U) → CTy Γ Γ'
+    Πt    :  (A : CTy Γ Γ') → (B : CTy (Γ ,t A) Γ') → CTy Γ Γ'
+    Πc    :  (A : CTy Γ Γ') → (B : CTy Γ (Γ' ,c A)) → CTy Γ Γ'
+    _[_]T :  {Δ Δ' : CCon} → CTy Δ Δ' → CTms Γ Γ' Δ Δ' → CTy Γ Γ'
 
   -- substitutions
-  data CTms : CCon → CCon → CCon → CCon → Set where
-    ε : {Γ Γ' : CCon} → CTms Γ Γ' • •
-    _,t_ : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-           (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' (Δ ,t A) Δ'
-    _,c_ : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-           (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' Δ (Δ' ,c A)
-    id : {Γ Γ' : CCon} → CTms Γ Γ' Γ Γ'
-    _∘_ : {Γ Γ' Δ Δ' Σ Σ' : CCon} → CTms Δ Δ' Σ Σ' → CTms Γ Γ' Δ Δ' → CTms Γ Γ' Σ Σ'
-    π₁t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' (Δ ,t A) Δ' → CTms Γ Γ' Δ Δ'
-    π₁c : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' Δ (Δ' ,c A) → CTms Γ Γ' Δ Δ'
+  data CTms (Γ Γ' : CCon) : CCon → CCon → Set where
+    ε    :  CTms Γ Γ' • •
+    _,t_ :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' (Δ ,t A) Δ'
+    _,c_ :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T) → CTms Γ Γ' Δ (Δ' ,c A)
+    id   :  CTms Γ Γ' Γ Γ'
+    _∘_  :  {Δ Δ' Σ Σ' : CCon} → CTms Δ Δ' Σ Σ' → CTms Γ Γ' Δ Δ' → CTms Γ Γ' Σ Σ'
+    π₁t  :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' (Δ ,t A) Δ' → CTms Γ Γ' Δ Δ'
+    π₁c  :  {Δ Δ' : CCon} {A : CTy Δ Δ'} → CTms Γ Γ' Δ (Δ' ,c A) → CTms Γ Γ' Δ Δ'
 
   -- terms
   data CTm : (Γ Γ' : CCon) → CTy Γ Γ' → Set where
-    lamt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} →
-           CTm (Γ ,t A) Γ' B → CTm Γ Γ' (Πt A B)
-    lamc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} →
-           CTm Γ (Γ' ,c A) B → CTm Γ Γ' (Πc A B)
-    appt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} →
-           CTm Γ Γ' (Πt A B) → CTm (Γ ,t A) Γ' B
-    appc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} →
-           CTm Γ Γ' (Πc A B) → CTm Γ (Γ' ,c A) B
-    π₂t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-          (δ : CTms Γ Γ' (Δ ,t A) Δ') → CTm Γ Γ' (A [ π₁t δ ]T)
-    π₂c : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-          (δ : CTms Γ Γ' Δ (Δ' ,c A)) → CTm Γ Γ' (A [ π₁c δ ]T)
-    _[_]t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} →
-            CTm Δ Δ' A → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T)
+    lamt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} → CTm (Γ ,t A) Γ' B → CTm Γ Γ' (Πt A B)
+    lamc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} → CTm Γ (Γ' ,c A) B → CTm Γ Γ' (Πc A B)
+    appt : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy (Γ ,t A) Γ'} → CTm Γ Γ' (Πt A B) → CTm (Γ ,t A) Γ' B
+    appc : {Γ Γ' : CCon} {A : CTy Γ Γ'} {B : CTy Γ (Γ' ,c A)} → CTm Γ Γ' (Πc A B) → CTm Γ (Γ' ,c A) B
+    π₂t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' (Δ ,t A) Δ') → CTm Γ Γ' (A [ π₁t δ ]T)
+    π₂c : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → (δ : CTms Γ Γ' Δ (Δ' ,c A)) → CTm Γ Γ' (A [ π₁c δ ]T)
+    _[_]t : {Γ Γ' Δ Δ' : CCon} {A : CTy Δ Δ'} → CTm Δ Δ' A → (δ : CTms Γ Γ' Δ Δ') → CTm Γ Γ' (A [ δ ]T)
 
 -- variables
 wkt : {Γ Γ' : CCon} {A : CTy Γ Γ'} → CTms (Γ ,t A) Γ' Γ Γ'
@@ -188,30 +182,33 @@ CTmΓ≡ : {Γ Γ' : CCon} {A₀ A₁ : CTy Γ Γ'} (A₂ : A₀ ≡ A₁) →
         CTm Γ Γ' A₀ ≡ CTm Γ Γ' A₁
 CTmΓ≡ {Γ} {Γ'} refl = refl
 
+
 -- postulates
 postulate
   [id]T' : {Γ Γ' : CCon} {A : CTy Γ Γ'} → A [ id ]T ≡ A
   [][]T' : {Γ Γ' Δ Δ' Σ Σ' : CCon} {A : CTy Σ Σ'} (δ : CTms Δ Δ' Σ Σ') →
            (σ : CTms Γ Γ' Δ Δ') → _≡_ {zero} {CTy Γ Γ'} (A [ δ ]T [ σ ]T) (A [ δ ∘ σ ]T)
   ∘asc : {Γ Γ' Δ Δ' Σ Σ' E E' : CCon} {A : CTy E E'}
-         (δ : CTms Σ Σ' E E') → (σ : CTms Δ Δ' Σ Σ') → (e : CTms Γ Γ' Δ Δ') → 
+         (δ : CTms Σ Σ' E E') → (σ : CTms Δ Δ' Σ Σ') → (e : CTms Γ Γ' Δ Δ') →
          _≡_ {zero} {CTy Γ Γ'} (A [ (δ ∘ σ) ∘ e ]T) (A [ δ ∘ (σ ∘ e) ]T)
   U[]' : {Γ Γ' Δ Δ' : CCon} {δ : CTms Γ Γ' Δ Δ'} → _≡_ {zero} {CTy Γ Γ'} (U [ δ ]T) U
   El[]' : {Γ Γ' Δ Δ' : CCon} {A : CTm Δ Δ' U} {δ : CTms Γ Γ' Δ Δ'} →
           _≡_ {zero} {CTy Γ Γ'} (El A [ δ ]T) (El (coe (CTmΓ≡ U[]') (A [ δ ]t)))
 
-_↑t_ : {Γ Γ' Δ Δ' : CCon} → (δ : CTms Γ Γ' Δ Δ') (A : CTy Δ Δ') → 
+-- The following duplicate δ:
+
+_↑t_ : {Γ Γ' Δ Δ' : CCon} → (δ : CTms Γ Γ' Δ Δ') (A : CTy Δ Δ') →
        CTms (Γ ,t A [ δ ]T) Γ' (Δ ,t A) Δ'
 δ ↑t A = (δ ∘ π₁t id) ,t coe (CTmΓ≡ ([][]T' δ (π₁t id))) (π₂t id)
 
-_↑c_ : {Γ Γ' Δ Δ' : CCon} → (δ : CTms Γ Γ' Δ Δ') (A : CTy Δ Δ') → 
+_↑c_ : {Γ Γ' Δ Δ' : CCon} → (δ : CTms Γ Γ' Δ Δ') (A : CTy Δ Δ') →
        CTms Γ (Γ' ,c A [ δ ]T) Δ (Δ' ,c A)
 δ ↑c A = (δ ∘ π₁c id) ,c coe (CTmΓ≡ ([][]T' δ (π₁c id))) (π₂c id)
 
 postulate
-  Πt[] : ∀ {Γ Γ' Δ Δ' A B} → (δ : CTms Γ Γ' Δ Δ') → 
+  Πt[] : ∀ {Γ Γ' Δ Δ' A B} → (δ : CTms Γ Γ' Δ Δ') →
         (Πt A B) [ δ ]T ≡ Πt (A [ δ ]T) (B [ δ ↑t A ]T)
-  Πc[] : ∀ {Γ Γ' Δ Δ' A B} → (δ : CTms Γ Γ' Δ Δ') → 
+  Πc[] : ∀ {Γ Γ' Δ Δ' A B} → (δ : CTms Γ Γ' Δ Δ') →
         (Πc A B) [ δ ]T ≡ Πc (A [ δ ]T) (B [ δ ↑c A ]T)
 
 -- application
@@ -237,42 +234,45 @@ t $c u = (appc t) [ < u >c ]t
 
 infix 5 _$c_
 
+
 -- equalities necessary for the CPS translation
 postulate
-  wk↑<> : ∀ {Γ Γ' S A B t} {T : CTy (Γ ,t S) Γ'} → 
+  wk↑<> : ∀ {Γ Γ' S A B t} {T : CTy (Γ ,t S) Γ'} →
           Πc (T [ wkc {A = A} ∘ wkc {A = B} ]T) U ≡
           Πc (T [ ((wkt ∘ wkc) ∘ wkc) ↑t S ∘ < t >t ]T) U
-         
-SubPiU : {Γ Γ' Δ Δ' : CCon} → (A : CTy Δ Δ') → (δ : CTms Γ Γ' Δ Δ') → 
-         (Πc (Πc A U) U) [ δ ]T ≡ Πc (Πc (A [ δ ]T) U) U
-SubPiU {Γ} {Γ'} {Δ} {Δ'} A δ =
-  begin
-    (Πc (Πc {Δ} A U) U) [ δ ]T
-  ≡⟨ Πc[] {Γ} {Γ'} {Δ} {Δ'} {Πc A U} {U} δ ⟩
-    Πc (Πc {Δ} A U [ δ ]T) (U [ δ ↑c Πc A U ]T)
-  ≡⟨ cong (λ x → Πc (Πc {Δ} A U [ δ ]T) x) 
-          (U[]' {Γ} {Γ' ,c Πc A U [ δ ]T} {Δ} {Δ' ,c Πc A U} {δ ↑c Πc A U}) ⟩ 
-    Πc (Πc {Δ} A U [ δ ]T) U
-  ≡⟨ cong (λ x → Πc x U) (Πc[] {Γ} {Γ'} {Δ} {Δ'} {A} {U} δ) ⟩
-    Πc (Πc {Γ} (A [ δ ]T) (U [ δ ↑c A ]T)) U
-  ≡⟨ cong (λ x → Πc (Πc (A [ δ ]T) x) U) 
-          (U[]' {Γ} {Γ' ,c A [ δ ]T} {Δ} {Δ' ,c A} {δ ↑c A}) ⟩
-    Πc (Πc (A [ δ ]T) U) U
-  ∎
 
-Πc[]' : ∀ {Γ Γ' Δ' A} → (δ : CTms Γ Γ' Γ Δ') 
-      → (Πc A U) [ δ ]T ≡ Πc (A [ δ ]T) U
-Πc[]' {A = A} δ =
-  begin
-    (Πc A U) [ δ ]T
-  ≡⟨ Πc[] δ ⟩
-    Πc (A [ δ ]T) (U [ δ ↑c A ]T)
-  ≡⟨ cong (λ x → Πc (A [ δ ]T) x) (U[]' {δ = δ ↑c A}) ⟩
-    Πc (A [ δ ]T) U
-  ∎
+abstract
+  SubPiU : {Γ Γ' Δ Δ' : CCon} → (A : CTy Δ Δ') → (δ : CTms Γ Γ' Δ Δ') →
+           (Πc (Πc A U) U) [ δ ]T ≡ Πc (Πc (A [ δ ]T) U) U
+  SubPiU {Γ} {Γ'} {Δ} {Δ'} A δ =
+    begin
+      (Πc (Πc {Δ} A U) U) [ δ ]T
+    ≡⟨ Πc[] {Γ} {Γ'} {Δ} {Δ'} {Πc A U} {U} δ ⟩
+      Πc (Πc {Δ} A U [ δ ]T) (U [ δ ↑c Πc A U ]T)
+    ≡⟨ cong (λ x → Πc (Πc {Δ} A U [ δ ]T) x)
+            (U[]' {Γ} {Γ' ,c Πc A U [ δ ]T} {Δ} {Δ' ,c Πc A U} {δ ↑c Πc A U}) ⟩
+      Πc (Πc {Δ} A U [ δ ]T) U
+    ≡⟨ cong (λ x → Πc x U) (Πc[] {Γ} {Γ'} {Δ} {Δ'} {A} {U} δ) ⟩
+      Πc (Πc {Γ} (A [ δ ]T) (U [ δ ↑c A ]T)) U
+    ≡⟨ cong (λ x → Πc (Πc (A [ δ ]T) x) U)
+            (U[]' {Γ} {Γ' ,c A [ δ ]T} {Δ} {Δ' ,c A} {δ ↑c A}) ⟩
+      Πc (Πc (A [ δ ]T) U) U
+    ∎
+
+  Πc[]' : ∀ {Γ Γ' Δ' A} → (δ : CTms Γ Γ' Γ Δ')
+        → (Πc A U) [ δ ]T ≡ Πc (A [ δ ]T) U
+  Πc[]' {A = A} δ =
+    begin
+      (Πc A U) [ δ ]T
+    ≡⟨ Πc[] δ ⟩
+      Πc (A [ δ ]T) (U [ δ ↑c A ]T)
+    ≡⟨ cong (λ x → Πc (A [ δ ]T) x) (U[]' {δ = δ ↑c A}) ⟩
+      Πc (A [ δ ]T) U
+    ∎
 
 -- CPS translation
 mutual
+  {-# TERMINATING #-}
   -- translation for contexts
   ÷-Con : Con → CCon
   ÷-Con • = •
@@ -285,7 +285,7 @@ mutual
   ÷-Tms id = id
   ÷-Tms (δ ∘ σ) with ÷-Tms δ | ÷-Tms σ
   ... | δ' | σ' = δ' ∘ σ'
-  ÷-Tms (π₁ {Γ} {Δ} {T} δ) with ÷-Tms δ
+  ÷-Tms {Γ} (π₁ {Δ} {T} δ) with ÷-Tms δ
   ... | δ' = π₁t {÷-Con Γ} {•} {÷-Con Δ} {•} {÷ T} δ'
 
   -- translation for types
@@ -294,14 +294,14 @@ mutual
 
   + : ∀ {Γ} → Ty Γ → CTy (÷-Con Γ) •
   + U = U
-  + {Γ} (El t) = El (coe (CTmΓ≡ U[]') 
-                         ((coe (CTmΓ≡ (cong (λ x → Πc (Πc x U) U) refl)) (cpsU t)) $c 
+  + {Γ} (El t) = El (coe (CTmΓ≡ U[]')
+                         ((coe (CTmΓ≡ (cong (λ x → Πc (Πc x U) U) refl)) (cpsU t)) $c
                           lamc (coe (CTmΓ≡ U[]') vzc)))
   + (Π A B) = Πt (÷ A) (÷ B)
-  + (A [ δ ]T) = + A [ ÷-Tms δ ]T 
-  
+  + (A [ δ ]T) = + A [ ÷-Tms δ ]T
+
   -- translation for terms of type U
-  cpsU : {Γ : Con} → Tm Γ U → CTm (÷-Con Γ) • Πc (Πc U U) U
+  cpsU : {Γ : Con} → Tm Γ U → CTm (÷-Con Γ) • (Πc (Πc U U) U)
   cpsU t = cps t
 
   -- translation for terms
@@ -309,38 +309,38 @@ mutual
   cps (lam {Γ} {A} {B} t) with cps t
   ... | t' with lamt t'
   ... | lt' with lt' [ π₁c {Γ' = • ,c Πc (+ (Π A B)) U} id ]t
-  ... | wlt' with _$c_ {Γ' = • ,c Πc (+ (Π A B)) U} 
-                       (coe (CTmΓ≡ (Πc[]' wkc)) 
-                            (π₂c {Γ' = • ,c Πc (Πt (Πc (Πc (+ A) U) U) 
+  ... | wlt' with _$c_ {Γ' = • ,c Πc (+ (Π A B)) U}
+                       (coe (CTmΓ≡ (Πc[]' wkc))
+                            (π₂c {Γ' = • ,c Πc (Πt (Πc (Πc (+ A) U) U)
                                                    (Πc (Πc (+ B) U) U)) U}
                                  id))
                        wlt'
   ... | r with coe (CTmΓ≡ (U[]' {δ = id ,c coe (CTmΓ≡ ([id]T' ⁻¹)) wlt'})) r
   ... | r' = lamc r'
-  cps (app {Γ} {A} {B} t) 
+  cps (app {Γ} {A} {B} t)
     = lamc {A = Πc (+ B) U}
-           (coe (CTmΓ≡ U[]') 
+           (coe (CTmΓ≡ U[]')
                 ((coe (CTmΓ≡ (SubPiU (+ (Π A B)) (wkt ∘ wkc)))
-                      ((cps t) [ wkt {A = ÷ A} ∘ (wkc {A = Πc (+ B) U}) ]t)) $c 
+                      ((cps t) [ wkt {A = ÷ A} ∘ (wkc {A = Πc (+ B) U}) ]t)) $c
                  (lamc {A = Πt (÷ A) (÷ B) [ wkt ∘ wkc ]T}
-                       (coe (CTmΓ≡ U[]') 
-                            ((coe (CTmΓ≡ (trans ([][]T' (((wkt ∘ wkc) ∘ wkc) ↑t ÷ A) 
-                                                        < coe (CTmΓ≡ (trans ([][]T' wkt (wkc ∘ wkc)) 
-                                                                            (sym (∘asc wkt wkc wkc)))) 
-                                                              (vzt [ wkc ∘ wkc ]t) >t) 
+                       (coe (CTmΓ≡ U[]')
+                            ((coe (CTmΓ≡ (trans ([][]T' (((wkt ∘ wkc) ∘ wkc) ↑t ÷ A)
+                                                        < coe (CTmΓ≡ (trans ([][]T' wkt (wkc ∘ wkc))
+                                                                            (sym (∘asc wkt wkc wkc))))
+                                                              (vzt [ wkc ∘ wkc ]t) >t)
                                                 (SubPiU (+ B)
                                                         ((((wkt ∘ wkc) ∘ wkc) ↑t ÷ A) ∘
-                                                         < coe (CTmΓ≡ (trans ([][]T' wkt (wkc ∘ wkc)) 
-                                                                      (sym (∘asc wkt wkc wkc)))) 
-                                                               (vzt [ wkc ∘ wkc ]t) >t)))) 
-                                  ((coe (CTmΓ≡ (trans ([][]T' (wkt ∘ wkc) wkc) (Πt[] ((wkt ∘ wkc) ∘ wkc)))) 
-                                        (vzc {A = Πt (÷ A) (÷ B) [ wkt ∘ wkc ]T})) $t 
+                                                         < coe (CTmΓ≡ (trans ([][]T' wkt (wkc ∘ wkc))
+                                                                      (sym (∘asc wkt wkc wkc))))
+                                                               (vzt [ wkc ∘ wkc ]t) >t))))
+                                  ((coe (CTmΓ≡ (trans ([][]T' (wkt ∘ wkc) wkc) (Πt[] ((wkt ∘ wkc) ∘ wkc))))
+                                        (vzc {A = Πt (÷ A) (÷ B) [ wkt ∘ wkc ]T})) $t
                                    (coe (CTmΓ≡ {Γ = ÷-Con Γ ,t ÷ A}
-                                               {Γ' = • ,c Πc (+ B) U ,c Πt (÷ A) (÷ B) [ wkt ∘ wkc ]T} 
-                                               (trans ([][]T' wkt (wkc ∘ wkc)) (sym (∘asc wkt wkc wkc)))) 
-                                        (vzt [ wkc ∘ wkc ]t)))) $c 
-                             (coe (CTmΓ≡ (trans (trans ([][]T' wkc wkc) (Πc[]' (wkc ∘ wkc))) 
-                                                (wk↑<> {T = + B}))) 
+                                               {Γ' = • ,c Πc (+ B) U ,c Πt (÷ A) (÷ B) [ wkt ∘ wkc ]T}
+                                               (trans ([][]T' wkt (wkc ∘ wkc)) (sym (∘asc wkt wkc wkc))))
+                                        (vzt [ wkc ∘ wkc ]t)))) $c
+                             (coe (CTmΓ≡ (trans (trans ([][]T' wkc wkc) (Πc[]' (wkc ∘ wkc)))
+                                                (wk↑<> {T = + B})))
                                   (vsc {A = Πc (+ B) U [ wkc ]T} vzc)))))))
   cps (π₂ {Γ} {Δ} {A} δ) with ÷-Tms δ
   ... | δ' with π₂t δ'
@@ -348,9 +348,9 @@ mutual
   ... | p = coe (CTmΓ≡ p) t'
   cps {.Γ} {A [ .δ ]T} (_[_]t {Γ} {Δ} t δ) with cps t | ÷-Tms δ
   ... | t' | δ' with t' [ δ' ]t | SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) δ'
-  ... | t'' | p = coe (CTmΓ≡ p) t'' 
+  ... | t'' | p = coe (CTmΓ≡ p) t''
 
   -- substitutions commute with translation on types
-  SubComTy : {Γ Δ : Con} → (A : Ty Δ) → (δ : Tms Γ Δ) 
+  SubComTy : {Γ Δ : Con} → (A : Ty Δ) → (δ : Tms Γ Δ)
            → ÷ (A [ δ ]T) ≡ (÷ A) [ ÷-Tms δ ]T
   SubComTy {Γ} {Δ} A δ = (SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (÷-Tms δ)) ⁻¹
