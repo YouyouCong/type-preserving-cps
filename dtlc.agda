@@ -1,3 +1,5 @@
+{-# OPTIONS --without-K #-}
+
 -- Type-safe representation of the λ calculus with Π types by Altenkirch & Kaposi (POPL 2016)
 -- and its CPS translation
 
@@ -271,7 +273,7 @@ abstract
 
 -- CPS translation
 mutual
-  
+
   -- translation for contexts
   ÷-Con : Con → CCon
   ÷-Con • = •
@@ -282,10 +284,8 @@ mutual
   ÷-Tms ε = ε
   ÷-Tms {Γ} {Δ , T} (δ , t) = ÷-Tms δ ,t coe (CTmΓ≡ (SubComTy T δ)) (cps t)
   ÷-Tms id = id
-  ÷-Tms (δ ∘ σ) with ÷-Tms δ | ÷-Tms σ
-  ... | δ' | σ' = δ' ∘ σ'
-  ÷-Tms (π₁ δ) with ÷-Tms δ
-  ... | δ' = π₁t δ'
+  ÷-Tms (δ ∘ σ) = ÷-Tms δ ∘ ÷-Tms σ
+  ÷-Tms (π₁ δ) = π₁t (÷-Tms δ)
 
   -- translation for types
   ÷ : ∀ {Γ} → Ty Γ → CTy (÷-Con Γ) •
@@ -305,17 +305,15 @@ mutual
 
   -- translation for terms
   cps : {Γ : Con} {A : Ty Γ} → Tm Γ A → CTm (÷-Con Γ) • (÷ A)
-  cps (lam {Γ} {A} {B} t) with cps t
-  ... | t' with lamt t'
-  ... | lt' with lt' [ π₁c {Γ' = • ,c Πc (+ (Π A B)) U} id ]t
-  ... | wlt' with _$c_ {Γ' = • ,c Πc (+ (Π A B)) U}
+  cps (lam {Γ} {A} {B} t) =
+    let wlt' = lamt (cps t) [ π₁c {Γ' = • ,c Πc (+ (Π A B)) U} id ]t in
+    lamc (coe (CTmΓ≡ (U[]' {δ = id ,c coe (CTmΓ≡ ([id]T' ⁻¹)) wlt'}))
+      (_$c_ {Γ' = • ,c Πc (+ (Π A B)) U}
                        (coe (CTmΓ≡ (Πc[]' wkc))
                             (π₂c {Γ' = • ,c Πc (Πt (Πc (Πc (+ A) U) U)
                                                    (Πc (Πc (+ B) U) U)) U}
                                  id))
-                       wlt'
-  ... | r with coe (CTmΓ≡ (U[]' {δ = id ,c coe (CTmΓ≡ ([id]T' ⁻¹)) wlt'})) r
-  ... | r' = lamc r'
+                       wlt'))
   cps (app {Γ} {A} {B} t)
     = lamc {A = Πc (+ B) U}
            (coe (CTmΓ≡ U[]')
@@ -342,9 +340,8 @@ mutual
                                                 (wk↑<> {T = + B})))
                                   (vsc {A = Πc (+ B) U [ wkc ]T} vzc)))))))
   cps (π₂ {Γ} {Δ} {A} δ) with ÷-Tms δ
-  ... | δ' with π₂t δ'
-  ... | t' with SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (π₁t δ')
-  ... | p = coe (CTmΓ≡ p) t'
+  ... | δ' with SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) (π₁t δ')
+  ... | p = coe (CTmΓ≡ p) (π₂t δ')
   cps {.Γ} {A [ .δ ]T} (_[_]t {Γ} {Δ} t δ) with cps t | ÷-Tms δ
   ... | t' | δ' with t' [ δ' ]t | SubPiU {÷-Con Γ} {•} {÷-Con Δ} {•} (+ A) δ'
   ... | t'' | p = coe (CTmΓ≡ p) t''
