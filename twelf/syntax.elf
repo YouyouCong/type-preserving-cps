@@ -1,0 +1,64 @@
+ki : type. %name ki K.
+ty : type. %name ty A a.
+tm : type. %name tm E x.
+
+ki/star : ki.
+ki/fun  : ki -> (ty -> ki) -> ki.
+ki/pi   : ty -> (tm -> ki) -> ki.
+
+ty/all  : ki -> (ty -> ty) -> ty.
+ty/abs  : ki -> (ty -> ty) -> ty.
+ty/inst : ty -> ty -> ty.
+ty/fun  : ty -> (tm -> ty) -> ty.
+ty/lam  : ty -> (tm -> ty) -> ty.
+ty/app  : ty -> tm -> ty.
+
+tm/abs  : ki -> (ty -> tm) -> tm.
+tm/inst : tm -> ty -> tm.
+tm/lam  : ty -> (tm -> tm) -> tm.
+tm/app  : tm -> tm -> tm.
+
+wfki    : ki -> type.
+wfty    : ty -> ki -> type.
+wftm    : tm -> ty -> type.
+
+% Well-formed kinds.
+
+wfki/star : wfki ki/star.
+wfki/fun  : wfki K -> ({a : ty} wfty a K -> wfki (L a)) -> wfki (ki/fun K L).
+wfki/pi   : wfty A ki/star -> ({x : tm} wftm x A -> wfki (K x)) -> wfki (ki/pi A K).
+
+% Well-formed types (kinding rules).
+
+wfty/all  : wfki K -> ({a : ty} wfty a K -> wfty (B a) ki/star) -> wfty (ty/all K B) ki/star.
+wfty/abs  : wfki K -> ({a : ty} wfty a K -> wfty (B a) (L a)) -> wfty (ty/abs K B) (ki/fun K L).
+wfty/inst : wfty B (ki/fun K L) -> wfty A K -> wfty (ty/inst B A) (L A).
+
+wfty/fun  : wfty A ki/star -> ({x : tm} wftm x A -> wfty (B x) ki/star) -> wfty (ty/fun A B) ki/star.
+wfty/lam  : wfty A ki/star -> ({x : tm} wftm x A -> wfty (B x) (L x))   -> wfty (ty/lam A B) (ki/pi A L).
+wfty/app  : wfty B (ki/pi A L) -> wftm E A -> wfty (ty/app B E) (L E).
+
+% Well-formed terms (typing rules).
+
+wftm/abs  : wfki K -> ({a : ty} wfty a K -> wftm (F a) (B a)) -> wftm (tm/abs K F) (ty/all K B).
+wftm/inst : wftm F (ty/all K B) -> wfty A K -> wftm (tm/inst F A) (B A).
+
+wftm/lam :  wfty A ki/star -> ({x : tm} wftm x A -> wftm (F x) (B x)) -> wftm (tm/lam A F) (ty/fun A B).
+wftm/app :  wftm F (ty/fun A B) -> wftm E A -> wftm (tm/app F E) (B E).
+
+%
+
+cpski : ki -> ki -> type.
+cpsty : ty -> ty -> type.
+divty : ty -> ty -> type.
+cpstm : tm -> tm -> type.
+
+%mode (cpski +K -L).
+%mode (cpsty +A -B).
+%mode (divty +A -B).
+%mode (cpstm +E -F).
+
+cpski/star : cpski ki/star ki/star.
+%% cpski/fun  : cpski (ki/fun K L) X.
+
+% cpsty

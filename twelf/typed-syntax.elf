@@ -1,0 +1,41 @@
+ki : type. %name ki K.
+ki/star : ki.
+
+ty : ki -> type. %name ty A a.
+ty0 = ty ki/star.
+
+tm : ty0 -> type. %name tm E x.
+
+%block ty/var : some {K : ki}  block {a : ty K}.
+%block tm/var : some {A : ty0} block {x : tm A}.
+
+ki/fun  : {K : ki} (ty K -> ki) -> ki.
+ki/pi   : {A : ty0} (tm A -> ki) -> ki.
+
+ty/all  : {K : ki} ({a : ty K} ty0) -> ty0.
+ty/abs  : {K : ki} {L : ty K -> ki} ({a : ty K} ty (L a)) -> ty (ki/fun K L).
+ty/inst : ty (ki/fun K L) -> {A : ty K} ty (L A).
+
+ty/fun  : {A : ty0} (tm A -> ty0) -> ty0.
+ty/lam  : {A : ty0} {L : tm A -> ki} ({x : tm A} ty (L x)) -> ty (ki/pi A L).
+ty/app  : ty (ki/pi A L) -> {E : tm A} ty (L E).
+
+tm/abs  : {K : ki} {B : ty K -> ty0} ({a : ty K} tm (B a)) -> tm (ty/all K B).
+tm/inst : tm (ty/all K B) -> {A : ty K} tm (B A).
+
+tm/lam  : {A : ty0} {B : tm A -> ty0} ({x : tm A} tm (B x)) -> tm (ty/fun A B).
+tm/app  : tm (ty/fun A B) -> {E : tm A} tm (B E).
+
+%worlds (ty/var | tm/var) (ki) (ty _) (tm _).
+
+%
+
+cpski : ki -> ki -> type.
+cpsty : cpski K K' -> ty K -> ty K' -> type.
+% divty : ty -> ty -> type.
+cpstm : cpsty X A A' -> tm A -> tm A' -> type.
+
+cpski/star : cpski ki/star ki/star.
+cpski/fun  : cpski (ki/fun K L) X.
+
+% cpsty
